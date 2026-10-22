@@ -1,0 +1,6 @@
+requests 
+fastapi 
+uvicorn
+pydantic 
+python-dotenv
+psycopg
