@@ -1,0 +1,190 @@
+{
+  "info": {
+    "name": "Diabetes Readmission Intervention API",
+    "description": "FastAPI backend in backend/. Start it with `cd backend` then `uvicorn api.main:app --reload`.\n\nSet the `baseUrl` collection variable if the API runs somewhere other than http://127.0.0.1:8000.\n\nPATCH requests change real data in the database the API points at.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
+    { "key": "encounterId", "value": "2" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] },
+            "description": "Returns {\"status\": \"ok\"}. Does not touch the database."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Encounters",
+      "item": [
+        {
+          "name": "List encounters",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/encounters?risk_level=HIGH&readmitted=<30&limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["encounters"],
+              "query": [
+                { "key": "risk_level", "value": "HIGH", "description": "LOW | MEDIUM | HIGH", "disabled": true },
+                { "key": "readmitted", "value": "<30", "description": "<30 | >30 | NO", "disabled": true },
+                { "key": "limit", "value": "50", "description": "1-500, default 50" },
+                { "key": "offset", "value": "0", "description": ">= 0, default 0" }
+              ]
+            },
+            "description": "Encounters ordered by encounter_id. Enable the optional filters as needed."
+          }
+        },
+        {
+          "name": "Get encounter with intervention",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/encounters/{{encounterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["encounters", "{{encounterId}}"]
+            },
+            "description": "One encounter plus its care intervention fields (null if it has none). 404 if the encounter does not exist."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Care queue",
+      "item": [
+        {
+          "name": "Care queue (MEDIUM + HIGH)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/care-queue?risk_level=HIGH&status=PENDING_REVIEW&assigned_to=nurse&limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["care-queue"],
+              "query": [
+                { "key": "risk_level", "value": "HIGH", "description": "MEDIUM | HIGH (LOW returns [])", "disabled": true },
+                { "key": "status", "value": "PENDING_REVIEW", "description": "PENDING_REVIEW | ASSIGNED | CONTACTED | FOLLOW_UP_SCHEDULED | CLOSED", "disabled": true },
+                { "key": "assigned_to", "value": "nurse", "description": "Exact, case-sensitive", "disabled": true },
+                { "key": "limit", "value": "50", "description": "1-500, default 50" },
+                { "key": "offset", "value": "0", "description": ">= 0, default 0" }
+              ]
+            },
+            "description": "HIGH first, then oldest intervention first."
+          }
+        },
+        {
+          "name": "High-risk care queue",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/care-queue/high?status=PENDING_REVIEW&assigned_to=nurse&limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["care-queue", "high"],
+              "query": [
+                { "key": "status", "value": "PENDING_REVIEW", "description": "PENDING_REVIEW | ASSIGNED | CONTACTED | FOLLOW_UP_SCHEDULED | CLOSED", "disabled": true },
+                { "key": "assigned_to", "value": "nurse", "description": "Exact, case-sensitive", "disabled": true },
+                { "key": "limit", "value": "50", "description": "1-500, default 50" },
+                { "key": "offset", "value": "0", "description": ">= 0, default 0" }
+              ]
+            },
+            "description": "Same as /care-queue?risk_level=HIGH. There is no risk_level parameter."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Interventions",
+      "item": [
+        {
+          "name": "Update intervention - status only",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONTACTED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/interventions/{{encounterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["interventions", "{{encounterId}}"]
+            },
+            "description": "Path id is the ENCOUNTER id. Omitted or null fields keep their value. 422 if no field is given, 404 if the encounter does not exist or has no intervention (LOW risk). Changes real data."
+          }
+        },
+        {
+          "name": "Update intervention - all fields",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"FOLLOW_UP_SCHEDULED\",\n  \"assigned_to\": \"doctor\",\n  \"notes\": \"call patient on Monday\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/interventions/{{encounterId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["interventions", "{{encounterId}}"]
+            },
+            "description": "assigned_to is at most 100 characters. Changes real data."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Operations",
+      "item": [
+        {
+          "name": "Operations summary",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/operations/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["operations", "summary"]
+            },
+            "description": "Encounter counts per risk level and intervention counts per status."
+          }
+        },
+        {
+          "name": "Readmission analysis",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/operations/readmission-analysis",
+              "host": ["{{baseUrl}}"],
+              "path": ["operations", "readmission-analysis"]
+            },
+            "description": "Retrospective comparison of risk groups with the historical <30 readmission outcome."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Management",
+      "item": [
+        {
+          "name": "Management dashboard",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/management/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["management", "dashboard"]
+            },
+            "description": "Executive summary metrics."
+          }
+        }
+      ]
+    }
+  ]
+}

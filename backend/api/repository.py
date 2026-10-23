@@ -54,3 +54,51 @@ def list_care_queue(risk_level, status, assigned_to, limit, offset):
         f"{QUEUE_SELECT} WHERE {' AND '.join(clauses)} {order} LIMIT %s OFFSET %s",
         (*params, limit, offset),
     )
+
+
+def update_intervention(encounter_id, status, assigned_to, notes):
+    """Returns the updated row, or None when the encounter has no intervention. Fields left as None are kept."""
+    return fetch_one(
+        """
+        UPDATE care_interventions
+        SET status = COALESCE(%s, status), assigned_to = COALESCE(%s, assigned_to),
+            notes = COALESCE(%s, notes), updated_at = CURRENT_TIMESTAMP
+        WHERE encounter_id = %s
+        RETURNING intervention_id, encounter_id, status, assigned_to, notes, created_at, updated_at
+        """,
+        (status, assigned_to, notes, encounter_id),
+    )
+
+
+def get_risk_counts():
+    return fetch_one(
+        """
+        SELECT COUNT(*) AS total_encounters,
+               COUNT(*) FILTER (WHERE risk_level = 'HIGH') AS high_risk,
+               COUNT(*) FILTER (WHERE risk_level = 'MEDIUM') AS medium_risk,
+               COUNT(*) FILTER (WHERE risk_level = 'LOW') AS low_risk
+        FROM patient_encounters
+        """
+    )
+
+
+def get_status_counts():
+    return fetch_all("SELECT status, COUNT(*) AS count FROM care_interventions GROUP BY status")
+
+
+def get_risk_group_outcomes():
+    """Per risk group: encounter count and historical <30 readmissions.
+
+    `readmitted` is used here only AFTER scoring, for retrospective validation."""
+    return fetch_all(
+        """
+        SELECT risk_level, COUNT(*) AS encounters,
+               COUNT(*) FILTER (WHERE readmitted = '<30') AS readmitted_under_30
+        FROM patient_encounters
+        GROUP BY risk_level
+        """
+    )
+
+
+def count_pending_interventions():
+    return fetch_one("SELECT COUNT(*) AS count FROM care_interventions WHERE status = 'PENDING_REVIEW'")["count"]
