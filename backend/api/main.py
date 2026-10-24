@@ -6,9 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api import repository, service
-from api.errors import NotFoundError
-from api.models import (HealthResponse, InterventionStatus, InterventionUpdate, ManagementDashboard, OperationsSummary,
-                        ReadmissionAnalysis, Readmitted, RiskLevel)
+from api.errors import InvalidInputError, NotFoundError
+from api.models import (EncounterCreate, EncounterResponse, HealthResponse, InterventionStatus, InterventionUpdate,
+                        ManagementDashboard, OperationsSummary, PatientSearchResult, ReadmissionAnalysis, Readmitted,
+                        RiskLevel)
 
 app = FastAPI(title="Diabetes Readmission Intervention Queue")
 
@@ -38,6 +39,11 @@ def database_unavailable(request, exc):
     return JSONResponse(status_code=503, content={"detail": "Database is unavailable. Try again later."})
 
 
+@app.exception_handler(InvalidInputError)
+def invalid_input(request, exc):
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+
 @app.exception_handler(NotFoundError)
 def not_found(request, exc):
     return JSONResponse(status_code=404, content={"detail": str(exc)})
@@ -54,12 +60,30 @@ def list_encounters(risk_level: Optional[RiskLevel] = None, readmitted: Optional
     return repository.list_encounters(_value(risk_level), _value(readmitted), limit, offset)
 
 
+@app.post("/encounters", response_model=EncounterResponse, status_code=201, summary="Add a new patient encounter")
+def create_encounter(payload: EncounterCreate):
+    return service.create_encounter(payload.model_dump(mode="json"))
+
+
 @app.get("/encounters/{encounter_id}", summary="Get one encounter with its intervention")
 def get_encounter(encounter_id: int):
     encounter = repository.get_encounter(encounter_id)
     if encounter is None:
         raise NotFoundError(f"Encounter {encounter_id} not found")
     return encounter
+
+
+@app.get("/patients/search", response_model=list[PatientSearchResult],
+         summary="Search patients by patient number, risk score and/or risk level")
+def search_patients(patient_nbr: Optional[int] = Query(None, description="Patient number (patient_nbr)"),
+                    risk_score: Optional[int] = Query(None, ge=0, le=service.MAX_RISK_SCORE,
+                                                      description="Exact risk score, 0-8"),
+                    risk_level: Optional[RiskLevel] = None, limit: int = LIMIT, offset: int = OFFSET):
+    """Any combination of filters (AND). Results are HIGH first.
+
+    Each row includes its care intervention status (null for LOW risk, which is not queued)."""
+    filters = service.normalize_search(patient_nbr, risk_score, _value(risk_level), limit, offset)
+    return repository.search_patients(**filters)
 
 
 @app.get("/care-queue", summary="View the MEDIUM + HIGH risk care queue")

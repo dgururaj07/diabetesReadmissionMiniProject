@@ -54,6 +54,48 @@
             },
             "description": "One encounter plus its care intervention fields (null if it has none). 404 if the encounter does not exist."
           }
+        },
+        {
+          "name": "Add a new patient encounter",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_nbr\": 88888,\n  \"age\": \"[60-70)\",\n  \"time_in_hospital\": 8,\n  \"number_inpatient\": 3,\n  \"number_emergency\": 2,\n  \"num_medications\": 22\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/encounters",
+              "host": ["{{baseUrl}}"],
+              "path": ["encounters"]
+            },
+            "description": "201 with the scored encounter. Risk is computed server-side (readmitted is stored, never scored); MEDIUM/HIGH also get a PENDING_REVIEW intervention (intervention_id, status), LOW gets nulls. Aliases: patient_number/patient-number, hospital, inpatient, emergency, medications. 400 if patient_nbr is missing or <= 0, 422 for negative or non-integer counts, 503 if the database is down. This example returns risk_score 7, HIGH. Note: it writes a real row."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patients",
+      "item": [
+        {
+          "name": "Search patients",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/patients/search?patient_nbr=88888&risk_score=7&risk_level=HIGH&limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "search"],
+              "query": [
+                { "key": "patient_nbr", "value": "88888", "description": "Exact patient number, > 0 (400 otherwise)" },
+                { "key": "risk_score", "value": "7", "description": "Exact risk score, 0-8", "disabled": true },
+                { "key": "risk_level", "value": "HIGH", "description": "LOW | MEDIUM | HIGH", "disabled": true },
+                { "key": "limit", "value": "10", "description": "1-500, default 50" },
+                { "key": "offset", "value": "0", "description": ">= 0, default 0" }
+              ]
+            },
+            "description": "Any combination of filters (AND); none returns the first page of all encounters. Ordered HIGH, MEDIUM, LOW, then risk_score descending, then encounter_id. Each row includes its care intervention (all null for LOW risk, which is not queued). No match returns []."
+          }
         }
       ]
     },

@@ -1,3 +1,49 @@
+from api import repository
+from api.errors import InvalidInputError
+from ingestion.risk import RISK_RULES, calculate_risk
+
+COUNT_FIELDS = ("time_in_hospital", "number_inpatient", "number_emergency", "number_outpatient",
+                "num_medications", "num_lab_procedures", "num_procedures")
+
+MAX_RISK_SCORE = sum(points for _, _, points, _ in RISK_RULES)  # highest possible score, currently 8
+RISK_LEVELS = ("LOW", "MEDIUM", "HIGH")
+
+
+def normalize_search(patient_nbr=None, risk_score=None, risk_level=None, limit=50, offset=0) -> dict:
+    """Validate /patients/search filters. Repeats the route checks so it is safe outside HTTP too."""
+    if patient_nbr is not None and patient_nbr <= 0:
+        raise InvalidInputError("Patient Number must be a positive integer.")
+    if risk_score is not None and not 0 <= risk_score <= MAX_RISK_SCORE:
+        raise InvalidInputError(f"Risk score must be between 0 and {MAX_RISK_SCORE}.")
+    level = None
+    if risk_level is not None:
+        level = risk_level.strip().upper()
+        if level not in RISK_LEVELS:
+            raise InvalidInputError(f"Invalid risk_level '{risk_level}'. Allowed: {', '.join(RISK_LEVELS)}.")
+    return {"patient_nbr": patient_nbr, "risk_score": risk_score, "risk_level": level,
+            "limit": min(max(limit, 1), 500), "offset": max(0, offset)}
+
+
+def create_encounter(data: dict) -> dict:
+    """Score a new encounter (never from `readmitted`), store it, and queue it when MEDIUM/HIGH."""
+    patient_nbr = data.get("patient_nbr")
+    if patient_nbr is None or patient_nbr <= 0:
+        raise InvalidInputError("Patient Number must be a positive integer.")
+    encounter = {
+        "patient_nbr": patient_nbr,
+        "age": data.get("age"),
+        **{field: max(0, int(data.get(field) or 0)) for field in COUNT_FIELDS},
+        "admission_type_id": int(data.get("admission_type_id") or 1),
+        "discharge_disposition_id": int(data.get("discharge_disposition_id") or 1),
+        "readmitted": data.get("readmitted") or "NO",
+    }
+    encounter.update(calculate_risk(encounter))
+    created = repository.create_encounter(encounter)
+    if created is None:
+        raise InvalidInputError("Failed to create encounter")
+    return created
+
+
 def build_operations_summary(counts: dict, status_rows: list) -> dict:
     by_status = {row["status"]: row["count"] for row in status_rows}
     return {

@@ -4,3 +4,7 @@ class AppError(Exception):
 
 class NotFoundError(AppError):
     pass
+
+
+class InvalidInputError(AppError):
+    pass

@@ -1,0 +1,343 @@
+/* Same green look as day5: plain font, light green background and some breathing room */
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background: #f1f8f2;
+  color: #1b3a24;
+}
+
+h1 {
+  color: #2e7d32;
+}
+
+h2 {
+  color: #388e3c;
+}
+
+/* Form fields flow into as many columns as fit, one column on a phone */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+input,
+select {
+  width: 100%;
+  max-width: 220px;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid #81c784;
+  background: #ffffff;
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid #43a047;
+}
+
+/* Validation error: red text under the field and a red border on the input */
+.error {
+  display: block;
+  color: #c62828;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+input.invalid {
+  border-color: #c62828;
+}
+
+.success {
+  color: #2e7d32;
+}
+
+button {
+  padding: 6px 20px;
+  background: #43a047;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2e7d32;
+}
+
+button:disabled {
+  background: #a5d6a7;
+  cursor: wait;
+}
+
+/* Wide table scrolls inside its box instead of stretching the page */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+th,
+td {
+  border: 1px solid #81c784;
+  padding: 6px 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+th {
+  background: #c8e6c9;
+}
+
+/* Risk level badge colours */
+.risk {
+  font-weight: bold;
+}
+
+.risk-low {
+  color: #2e7d32;
+}
+
+.risk-medium {
+  color: #ef6c00;
+}
+
+.risk-high {
+  color: #c62828;
+}
+
+/* ---------- Tabs ---------- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid #81c784;
+  margin-bottom: 20px;
+}
+
+/* Tabs are buttons, so undo the solid green button look */
+.tab {
+  background: transparent;
+  color: #2e7d32;
+  padding: 10px 20px;
+  border: 2px solid transparent;
+  border-bottom: none;
+  margin-bottom: -2px;
+  font-size: 15px;
+}
+
+.tab:hover {
+  background: #c8e6c9;
+}
+
+.tab[aria-selected="true"] {
+  background: #ffffff;
+  border-color: #81c784;
+  border-bottom: 2px solid #ffffff;
+  font-weight: bold;
+}
+
+.tab:focus-visible,
+.chip:focus-visible,
+button:focus-visible {
+  outline: 2px solid #1b5e20;
+  outline-offset: 2px;
+}
+
+/* ---------- Search tab ---------- */
+.card {
+  background: #ffffff;
+  border: 1px solid #c8e6c9;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* Title on the left, buttons on the right; buttons drop below the title on narrow screens */
+.card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card-header h2 {
+  margin: 0;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: #4e6b55;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Outline variant of the green button */
+button.secondary {
+  background: #ffffff;
+  color: #2e7d32;
+  border: 1px solid #81c784;
+}
+
+button.secondary:hover {
+  background: #e8f5e9;
+}
+
+button.secondary:disabled {
+  color: #a5d6a7;
+  background: #ffffff;
+  cursor: not-allowed;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.chips-label {
+  color: #4e6b55;
+}
+
+.chip {
+  background: #e8f5e9;
+  color: #1b3a24;
+  border: 1px solid #c8e6c9;
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.chip:hover {
+  background: #c8e6c9;
+}
+
+.chip[aria-pressed="true"] {
+  background: #2e7d32;
+  border-color: #2e7d32;
+  color: #ffffff;
+}
+
+/* Encounter ID in the results table: looks like a link, opens the Care Intervention tab */
+button.link-button {
+  background: transparent;
+  color: #2e7d32;
+  padding: 0;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+button.link-button:hover {
+  background: transparent;
+  color: #1b5e20;
+}
+
+/* Pill badges for risk level and intervention status (they reuse the risk-* text colours above) */
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.badge.risk-high {
+  background: #ffebee;
+}
+
+.badge.risk-medium {
+  background: #fff3e0;
+}
+
+.badge.risk-low {
+  background: #e8f5e9;
+}
+
+.badge.status {
+  background: #fff8e1;
+  color: #8d6e00;
+  border: 1px solid #ffe082;
+}
+
+.error-cell {
+  color: #c62828;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* ---------- Care Intervention tab ---------- */
+/* Encounter ID field with the Fetch button beside it (below it on narrow screens) */
+.lookup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.lookup button {
+  margin-top: 22px;  /* line the button up with the input, under the label */
+}
+
+/* Summary card: label above value, as many columns as fit */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  background: #f9fdf9;
+}
+
+.summary-wide {
+  grid-column: 1 / -1;
+}
+
+.summary-label {
+  display: block;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #4e6b55;
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.field-wide {
+  margin-bottom: 8px;
+}
+
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px;
+  border: 1px solid #81c784;
+  font-family: inherit;
+}
+
+textarea:focus {
+  outline: 2px solid #43a047;
+}
+
+.hint {
+  font-size: 13px;
+  color: #4e6b55;
+}

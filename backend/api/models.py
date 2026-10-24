@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -38,6 +39,89 @@ class InterventionUpdate(BaseModel):
         if self.status is None and self.assigned_to is None and self.notes is None:
             raise ValueError("Provide at least one of: status, assigned_to, notes")
         return self
+
+
+# alias -> canonical field name, accepted on POST /encounters
+ENCOUNTER_ALIASES = {
+    "patient_number": "patient_nbr",
+    "patient-number": "patient_nbr",
+    "hospital": "time_in_hospital",
+    "inpatient": "number_inpatient",
+    "emergency": "number_emergency",
+    "medications": "num_medications",
+}
+
+
+class EncounterCreate(BaseModel):
+    # Optional so a missing or non-positive number gets the service's 400, not a 422
+    patient_nbr: Optional[int] = None
+    age: Optional[str] = Field(default=None, max_length=30)
+    time_in_hospital: Optional[int] = Field(default=0, ge=0)
+    number_inpatient: Optional[int] = Field(default=0, ge=0)
+    number_emergency: Optional[int] = Field(default=0, ge=0)
+    number_outpatient: Optional[int] = Field(default=0, ge=0)
+    num_medications: Optional[int] = Field(default=0, ge=0)
+    num_lab_procedures: Optional[int] = Field(default=0, ge=0)
+    num_procedures: Optional[int] = Field(default=0, ge=0)
+    admission_type_id: Optional[int] = 1
+    discharge_disposition_id: Optional[int] = 1
+    readmitted: Optional[Readmitted] = Readmitted.NO  # historical outcome: stored only, never scored
+
+    @model_validator(mode="before")
+    @classmethod
+    def apply_aliases(cls, data):
+        if isinstance(data, dict):
+            data = dict(data)
+            for alias, field in ENCOUNTER_ALIASES.items():
+                if field not in data and alias in data:
+                    data[field] = data[alias]
+        return data
+
+
+class EncounterResponse(BaseModel):
+    encounter_id: int
+    patient_nbr: int
+    age: Optional[str] = None
+    time_in_hospital: Optional[int] = None
+    number_inpatient: Optional[int] = None
+    number_emergency: Optional[int] = None
+    number_outpatient: Optional[int] = None
+    num_medications: Optional[int] = None
+    num_lab_procedures: Optional[int] = None
+    num_procedures: Optional[int] = None
+    admission_type_id: Optional[int] = None
+    discharge_disposition_id: Optional[int] = None
+    readmitted: Optional[str] = None
+    risk_score: int
+    risk_level: RiskLevel
+    review_reason: Optional[str] = None
+    created_at: Optional[datetime] = None
+    intervention_id: Optional[int] = None
+    status: Optional[InterventionStatus] = None
+
+
+class PatientSearchResult(BaseModel):
+    """One encounter row from /patients/search, with its care intervention (null for LOW risk, which is not queued)."""
+    encounter_id: int
+    patient_nbr: int
+    age: Optional[str] = None
+    time_in_hospital: Optional[int] = None
+    number_inpatient: Optional[int] = None
+    number_emergency: Optional[int] = None
+    number_outpatient: Optional[int] = None
+    num_medications: Optional[int] = None
+    num_lab_procedures: Optional[int] = None
+    discharge_disposition_id: Optional[int] = None
+    admission_type_id: Optional[int] = None
+    readmitted: Optional[str] = None
+    risk_score: int
+    risk_level: RiskLevel
+    review_reason: Optional[str] = None
+    intervention_id: Optional[int] = None
+    status: Optional[InterventionStatus] = None
+    intervention_status: Optional[InterventionStatus] = None  # same as status, kept for frontend compatibility
+    assigned_to: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class OperationsSummary(BaseModel):

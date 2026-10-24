@@ -23,6 +23,11 @@ def _connect() -> psycopg.Connection:
     return psycopg.connect(row_factory=dict_row, connect_timeout=5)
 
 
+def connection() -> psycopg.Connection:
+    """For several statements in one transaction: `with connection() as conn:` commits on success, rolls back on error."""
+    return _connect()
+
+
 def fetch_all(sql: str, params: tuple = ()) -> list[dict]:
     with _connect() as conn:
         return conn.execute(sql, params).fetchall()

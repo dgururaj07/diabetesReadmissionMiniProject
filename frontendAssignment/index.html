@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diabetes Patient Management</title>
+  <!-- ?v= forces the browser to download a fresh copy; bump it whenever the CSS or JS files change -->
+  <link rel="stylesheet" href="style.css?v=2">
+</head>
+
+<body>
+  <h1>Diabetes Patient Management</h1>
+
+  <!-- Tabs: tabs.js shows one panel at a time and remembers the choice in the URL (#add or #search) -->
+  <div class="tabs" role="tablist" aria-label="Pages">
+    <button type="button" class="tab" role="tab" id="tab-add" aria-controls="panel-add"
+      aria-selected="true">Add Encounter</button>
+    <button type="button" class="tab" role="tab" id="tab-search" aria-controls="panel-search"
+      aria-selected="false" tabindex="-1">Search Patients</button>
+    <button type="button" class="tab" role="tab" id="tab-care" aria-controls="panel-care"
+      aria-selected="false" tabindex="-1">Care Intervention</button>
+  </div>
+
+  <div id="panel-add" role="tabpanel" aria-labelledby="tab-add">
+  <section id="add-encounter" aria-labelledby="add-encounter-title">
+    <h2 id="add-encounter-title">Add Patient Encounter</h2>
+
+    <!-- novalidate turns off the browser's own popups so our messages are shown instead -->
+    <form id="encounter-form" novalidate>
+      <div class="grid">
+        <div>
+          <label for="patient_nbr">Patient Number *</label>
+          <input type="text" id="patient_nbr" name="patient_nbr" inputmode="numeric"
+            aria-describedby="patient_nbr_error">
+          <!-- Empty until validation fails; role="alert" makes screen readers announce it -->
+          <span id="patient_nbr_error" class="error" role="alert"></span>
+        </div>
+
+        <div>
+          <label for="age">Age</label>
+          <select id="age" name="age">
+            <option value="">Age Group</option>
+            <option value="[0-10)">[0-10)</option>
+            <option value="[10-20)">[10-20)</option>
+            <option value="[20-30)">[20-30)</option>
+            <option value="[30-40)">[30-40)</option>
+            <option value="[40-50)">[40-50)</option>
+            <option value="[50-60)">[50-60)</option>
+            <option value="[60-70)">[60-70)</option>
+            <option value="[70-80)">[70-80)</option>
+            <option value="[80-90)">[80-90)</option>
+            <option value="[90-100)">[90-100)</option>
+          </select>
+        </div>
+
+        <!-- Count fields: left empty they are not sent, so the backend default of 0 is used -->
+        <div>
+          <label for="time_in_hospital">Time in Hospital (days)</label>
+          <input type="number" id="time_in_hospital" name="time_in_hospital" min="0" step="1">
+        </div>
+
+        <div>
+          <label for="number_inpatient">Inpatient Visits</label>
+          <input type="number" id="number_inpatient" name="number_inpatient" min="0" step="1">
+        </div>
+
+        <div>
+          <label for="number_emergency">Emergency Visits</label>
+          <input type="number" id="number_emergency" name="number_emergency" min="0" step="1">
+        </div>
+
+        <div>
+          <label for="number_outpatient">Outpatient Visits</label>
+          <input type="number" id="number_outpatient" name="number_outpatient" min="0" step="1">
+        </div>
+
+        <div>
+          <label for="num_medications">Medications</label>
+          <input type="number" id="num_medications" name="num_medications" min="0" step="1">
+        </div>
+
+        <div>
+          <label for="num_lab_procedures">Lab Procedures</label>
+          <input type="number" id="num_lab_procedures" name="num_lab_procedures" min="0" step="1">
+        </div>
+
+        <div>
+          <label for="num_procedures">Procedures</label>
+          <input type="number" id="num_procedures" name="num_procedures" min="0" step="1">
+        </div>
+
+        <div>
+          <label for="admission_type_id">Admission Type ID</label>
+          <input type="number" id="admission_type_id" name="admission_type_id" min="1" step="1" placeholder="1">
+        </div>
+
+        <div>
+          <label for="discharge_disposition_id">Discharge Disposition ID</label>
+          <input type="number" id="discharge_disposition_id" name="discharge_disposition_id" min="1" step="1"
+            placeholder="1">
+        </div>
+
+        <div>
+          <label for="readmitted">Readmitted (historical, not scored)</label>
+          <select id="readmitted" name="readmitted">
+            <option value="NO">NO</option>
+            <option value="&lt;30">&lt;30</option>
+            <option value="&gt;30">&gt;30</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" id="add-encounter-btn">Add Encounter</button>
+      <!-- Success or server error message after submitting -->
+      <p id="form-message" role="status"></p>
+    </form>
+  </section>
+
+  <section id="patient-encounter-list" aria-labelledby="encounter-list-title">
+    <h2 id="encounter-list-title">Added Encounters</h2>
+    <!-- Wrapper scrolls sideways on narrow screens instead of the whole page -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Encounter ID</th>
+            <th>Patient Number</th>
+            <th>Age</th>
+            <th>Days</th>
+            <th>Inpatient</th>
+            <th>Emergency</th>
+            <th>Outpatient</th>
+            <th>Medications</th>
+            <th>Lab Proc.</th>
+            <th>Procedures</th>
+            <th>Readmitted</th>
+            <th>Risk Score</th>
+            <th>Risk Level</th>
+            <th>Review Reason</th>
+            <th>Intervention Status</th>
+            <th>Assigned To</th>
+            <th>Intervention Notes</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody id="encounter-list">
+          <tr id="empty-row">
+            <td colspan="18">No encounters added yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  </div>
+
+  <div id="panel-search" role="tabpanel" aria-labelledby="tab-search" hidden>
+    <section class="card" aria-labelledby="search-title">
+      <form id="search-form" novalidate>
+        <div class="card-header">
+          <div>
+            <h2 id="search-title">Search Patients &amp; Encounters</h2>
+            <p class="subtitle">Filter encounters by patient number, calculated risk score, or risk level</p>
+          </div>
+          <div class="actions">
+            <button type="button" id="reset-filters-btn" class="secondary">Reset Filters</button>
+            <button type="submit" id="search-btn">Search</button>
+          </div>
+        </div>
+
+        <div class="grid">
+          <div>
+            <label for="search_patient_nbr">Patient Number</label>
+            <input type="text" id="search_patient_nbr" inputmode="numeric" placeholder="e.g. 88888"
+              aria-describedby="search_patient_nbr_error">
+            <span id="search_patient_nbr_error" class="error" role="alert"></span>
+          </div>
+
+          <div>
+            <label for="search_risk_level">Risk Level</label>
+            <select id="search_risk_level">
+              <option value="">All Risk Levels</option>
+              <option value="HIGH">HIGH</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="LOW">LOW</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="search_risk_score">Exact Risk Score (0 - 8)</label>
+            <input type="number" id="search_risk_score" min="0" max="8" step="1" placeholder="e.g. 5"
+              aria-describedby="search_risk_score_error">
+            <span id="search_risk_score_error" class="error" role="alert"></span>
+          </div>
+        </div>
+
+        <!-- Each chip sets the Risk Level dropdown and searches straight away -->
+        <div class="chips" role="group" aria-label="Quick filters">
+          <span class="chips-label">Quick Filters:</span>
+          <button type="button" class="chip" data-level="" aria-pressed="true">All Encounters</button>
+          <button type="button" class="chip" data-level="HIGH" aria-pressed="false">High Risk Priority</button>
+          <button type="button" class="chip" data-level="MEDIUM" aria-pressed="false">Medium Risk</button>
+          <button type="button" class="chip" data-level="LOW" aria-pressed="false">Low Risk</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="results-title">
+      <div class="card-header">
+        <div>
+          <h2 id="results-title">Encounter Results</h2>
+          <p class="subtitle" id="results-summary" role="status">Loading...</p>
+        </div>
+        <div class="actions">
+          <button type="button" id="refresh-btn" class="secondary">Refresh</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Encounter ID</th>
+              <th>Patient #</th>
+              <th>Age</th>
+              <th>Hospital Stay</th>
+              <th>Prior (In / ER / Out)</th>
+              <th>Meds</th>
+              <th>Risk Score</th>
+              <th>Risk Level</th>
+              <th>Readmitted</th>
+              <th>Intervention Status</th>
+              <th>Assigned To</th>
+            </tr>
+          </thead>
+          <tbody id="search-results"></tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <button type="button" id="prev-page-btn" class="secondary" disabled>Previous</button>
+        <span id="page-info"></span>
+        <button type="button" id="next-page-btn" class="secondary" disabled>Next</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="panel-care" role="tabpanel" aria-labelledby="tab-care" hidden>
+    <section class="card" aria-labelledby="care-title">
+      <h2 id="care-title">Care Intervention &amp; Tracking</h2>
+      <p class="subtitle">Look up an encounter, then update its care intervention</p>
+
+      <form id="care-lookup-form" class="lookup" novalidate>
+        <div>
+          <label for="care_encounter_id">Encounter ID *</label>
+          <input type="text" id="care_encounter_id" inputmode="numeric" placeholder="e.g. 443867226"
+            aria-describedby="care_encounter_id_error">
+          <span id="care_encounter_id_error" class="error" role="alert"></span>
+        </div>
+        <button type="submit" id="care-fetch-btn">Fetch Encounter Status</button>
+      </form>
+      <p id="care-lookup-message" role="status"></p>
+    </section>
+
+    <!-- Filled in by care.js after a successful lookup -->
+    <section id="care-summary" class="card summary" aria-label="Encounter summary" hidden>
+      <div>
+        <span class="summary-label">Encounter ID</span>
+        <span class="summary-value" id="sum-encounter-id"></span>
+      </div>
+      <div>
+        <span class="summary-label">Patient Number</span>
+        <span class="summary-value" id="sum-patient-nbr"></span>
+      </div>
+      <div>
+        <span class="summary-label">Risk Score</span>
+        <span class="summary-value" id="sum-risk-score"></span>
+      </div>
+      <div>
+        <span class="summary-label">Risk Level</span>
+        <span class="summary-value" id="sum-risk-level"></span>
+      </div>
+      <div>
+        <span class="summary-label">Intervention Status</span>
+        <span class="summary-value" id="sum-status"></span>
+      </div>
+      <div>
+        <span class="summary-label">Assigned To</span>
+        <span class="summary-value" id="sum-assigned-to"></span>
+      </div>
+      <div class="summary-wide">
+        <span class="summary-label">Review Reason</span>
+        <span id="sum-review-reason"></span>
+      </div>
+      <div class="summary-wide">
+        <span class="summary-label">Notes</span>
+        <span id="sum-notes"></span>
+      </div>
+      <div class="summary-wide">
+        <span class="summary-label">Last Updated</span>
+        <span id="sum-updated-at"></span>
+      </div>
+    </section>
+
+    <section id="care-update" class="card" aria-labelledby="care-update-title" hidden>
+      <h2 id="care-update-title">Update Care Plan &amp; Outreach</h2>
+      <form id="care-update-form" novalidate>
+        <div class="grid">
+          <div>
+            <label for="care_status">Intervention Status *</label>
+            <select id="care_status">
+              <option value="PENDING_REVIEW">Pending Review</option>
+              <option value="ASSIGNED">Assigned</option>
+              <option value="CONTACTED">Contacted</option>
+              <option value="FOLLOW_UP_SCHEDULED">Follow-up Scheduled</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+          </div>
+          <div>
+            <label for="care_assigned_to">Assigned Clinician / Care Manager</label>
+            <input type="text" id="care_assigned_to" maxlength="100" placeholder="e.g. Dr. Sarah Smith">
+          </div>
+        </div>
+        <div class="field-wide">
+          <label for="care_notes">Care Notes &amp; Follow-Up Details</label>
+          <textarea id="care_notes" rows="4"
+            placeholder="Notes on patient consultation, medication reconciliation, discharge plan review..."></textarea>
+        </div>
+        <p class="hint">Leaving Assigned To or Notes empty keeps the saved value; the API cannot clear them.</p>
+        <button type="submit" id="care-save-btn">Save Intervention</button>
+        <p id="care-update-message" role="status"></p>
+      </form>
+    </section>
+  </div>
+
+  <script src="app.js?v=2"></script>
+  <script src="search.js?v=2"></script>
+  <script src="care.js?v=2"></script>
+  <script src="tabs.js?v=2"></script>
+</body>
+
+</html>

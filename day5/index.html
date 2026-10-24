@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diabetes Patient Management</title>
+  <!-- Basic styling lives in the external stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <h1>Diabetes Patient Management</h1>
+
+  <!-- aria-labelledby names the section after its heading for screen readers -->
+  <section id="add-encounter" aria-labelledby="add-encounter-title">
+    <h2 id="add-encounter-title">Add Patient Encounter</h2>
+
+    <!-- novalidate turns off the browser's own popups so our message is shown instead -->
+    <form id="encounter-form" novalidate>
+      <!-- Each label + field pair is wrapped in a div; spacing comes from the CSS -->
+      <div>
+        <label for="patient_nbr">Patient Number</label>
+        <input type="text" id="patient_nbr" name="patient_nbr" aria-describedby="patient_nbr_error">
+        <!-- Empty until validation fails; role="alert" makes screen readers announce it -->
+        <span id="patient_nbr_error" class="error" role="alert"></span>
+      </div>
+
+      <div>
+        <label for="age">Age</label>
+        <select id="age" name="age">
+          <option value="">Age Group</option>
+          <option value="[0-10)">[0-10)</option>
+          <option value="[10-20)">[10-20)</option>
+          <option value="[20-30)">[20-30)</option>
+          <option value="[30-40)">[30-40)</option>
+          <option value="[40-50)">[40-50)</option>
+          <option value="[50-60)">[50-60)</option>
+          <option value="[60-70)">[60-70)</option>
+          <option value="[70-80)">[70-80)</option>
+          <option value="[80-90)">[80-90)</option>
+          <option value="[90-100)">[90-100)</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="time_in_hospital">Time in Hospital (days)</label>
+        <input type="number" id="time_in_hospital" name="time_in_hospital">
+      </div>
+
+      <div>
+        <label for="number_inpatient">Inpatient Visits</label>
+        <input type="number" id="number_inpatient" name="number_inpatient">
+      </div>
+
+      <div>
+        <label for="number_emergency">Emergency Visits</label>
+        <input type="number" id="number_emergency" name="number_emergency">
+      </div>
+
+      <div>
+        <label for="num_medications">Medications</label>
+        <input type="number" id="num_medications" name="num_medications">
+      </div>
+
+      <button type="submit" id="add-encounter-btn">Add Encounter</button>
+    </form>
+  </section>
+
+  <section id="patient-encounter-list">
+    <table>
+      <thead>
+        <tr>
+          <th>Patient Number</th>
+          <th>Age</th>
+          <th>Risk Score</th>
+          <th>Risk Level</th>
+        </tr>
+      </thead>
+      <tbody id="encounter-list">
+        <!-- Rows will be added here dynamically -->
+      </tbody>
+    </table>
+
+  </section>
+
+  <script>
+    const form = document.getElementById("encounter-form");
+    const patientInput = document.getElementById("patient_nbr");
+    const patientError = document.getElementById("patient_nbr_error");
+
+    // Returns an error message, or "" if the patient number is valid
+    function validatePatientNumber() {
+      const value = patientInput.value.trim();
+      if (value === "") {
+        return "Patient number is required.";
+      }
+      // Must be a whole number greater than zero (DB column is a BIGINT id)
+      if (!/^\d+$/.test(value) || Number(value) < 1) {
+        return "Patient number must be a positive whole number.";
+      }
+      return "";
+    }
+
+    // Show (or clear) the message and mark the field as invalid for styling
+    function showPatientError() {
+      const message = validatePatientNumber();
+      patientError.textContent = message;
+      patientInput.classList.toggle("invalid", message !== "");
+      return message === "";
+    }
+
+    async function loadPatients() {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/encounters");
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        const patients = await response.json();
+        console.log(patients);
+        document.getElementById("encounter-list").innerHTML = patients.map(patient => `
+          <tr>
+            <td>${patient.patient_nbr}</td>
+            <td>${patient.age}</td>
+            <td>${patient.risk_score}</td>
+            <td>${patient.risk_level}</td>
+          </tr>
+        `).join("");
+      }
+      catch (error) {
+        console.error("Error loading patients:", error);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', (event) => loadPatients());
+    
+
+    // Block submission when invalid and put focus back on the field
+    form.addEventListener("submit", function (event) {
+      if (!showPatientError()) {
+        event.preventDefault();
+        patientInput.focus();
+      }
+    });
+
+    // Re-check while typing so the message disappears once it is fixed
+    patientInput.addEventListener("input", showPatientError);
+  </script>
+</body>
+
+</html>

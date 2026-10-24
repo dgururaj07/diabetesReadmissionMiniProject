@@ -1,4 +1,4 @@
-from api.db import fetch_all, fetch_one
+from api.db import connection, fetch_all, fetch_one
 
 
 def list_encounters(risk_level, readmitted, limit, offset):
@@ -102,3 +102,66 @@ def get_risk_group_outcomes():
 
 def count_pending_interventions():
     return fetch_one("SELECT COUNT(*) AS count FROM care_interventions WHERE status = 'PENDING_REVIEW'")["count"]
+
+
+ENCOUNTER_COLUMNS = ("patient_nbr", "age", "time_in_hospital", "number_inpatient", "number_emergency",
+                     "number_outpatient", "num_medications", "num_lab_procedures", "num_procedures",
+                     "admission_type_id", "discharge_disposition_id", "readmitted",
+                     "risk_score", "risk_level", "review_reason")
+
+
+def create_encounter(encounter):
+    """Insert the encounter and, for MEDIUM/HIGH, its PENDING_REVIEW intervention in one transaction.
+
+    encounter_id has no sequence, so MAX + 1 is used; the table lock makes concurrent creates wait their turn
+    instead of colliding on the same id (plain reads are not blocked)."""
+    columns = ", ".join(ENCOUNTER_COLUMNS)
+    placeholders = ", ".join(["%s"] * len(ENCOUNTER_COLUMNS))
+    with connection() as conn:
+        conn.execute("LOCK TABLE patient_encounters IN SHARE ROW EXCLUSIVE MODE")
+        row = conn.execute(
+            f"""
+            WITH next_id AS (SELECT COALESCE(MAX(encounter_id), 0) + 1 AS encounter_id FROM patient_encounters)
+            INSERT INTO patient_encounters (encounter_id, {columns}, created_at)
+            SELECT next_id.encounter_id, {placeholders}, CURRENT_TIMESTAMP FROM next_id
+            RETURNING *
+            """,
+            tuple(encounter[column] for column in ENCOUNTER_COLUMNS),
+        ).fetchone()
+        if row is None:
+            return None
+        intervention = {"intervention_id": None, "status": None}  # LOW risk is never queued
+        if row["risk_level"] in ("MEDIUM", "HIGH"):
+            intervention = conn.execute(
+                """
+                INSERT INTO care_interventions (encounter_id, status) VALUES (%s, 'PENDING_REVIEW')
+                ON CONFLICT (encounter_id) DO UPDATE SET encounter_id = EXCLUDED.encounter_id
+                RETURNING intervention_id, status
+                """,
+                (row["encounter_id"],),
+            ).fetchone()
+        return {**row, **intervention}
+
+
+def search_patients(patient_nbr, risk_score, risk_level, limit, offset):
+    """LEFT JOIN so LOW-risk encounters (no intervention) are returned too, with null intervention fields."""
+    clauses, params = [], []
+    for column, value in (("e.patient_nbr", patient_nbr), ("e.risk_score", risk_score), ("e.risk_level", risk_level)):
+        if value is not None:
+            clauses.append(f"{column} = %s")
+            params.append(value)
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    return fetch_all(
+        f"""
+        SELECT e.encounter_id, e.patient_nbr, e.age, e.time_in_hospital, e.number_inpatient, e.number_emergency,
+               e.number_outpatient, e.num_medications, e.num_lab_procedures, e.discharge_disposition_id,
+               e.admission_type_id, e.readmitted, e.risk_score, e.risk_level, e.review_reason,
+               ci.intervention_id, ci.status, ci.status AS intervention_status, ci.assigned_to, ci.notes
+        FROM patient_encounters e
+        LEFT JOIN care_interventions ci ON ci.encounter_id = e.encounter_id
+        {where}
+        ORDER BY CASE e.risk_level WHEN 'HIGH' THEN 0 WHEN 'MEDIUM' THEN 1 ELSE 2 END, e.risk_score DESC, e.encounter_id
+        LIMIT %s OFFSET %s
+        """,
+        (*params, limit, offset),
+    )

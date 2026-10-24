@@ -1,0 +1,85 @@
+/* Simple page styling: plain font, light green background and some breathing room */
+body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background: #f1f8f2;
+  color: #1b3a24;
+}
+
+/* Dark green main title */
+h1 {
+  color: #2e7d32;
+}
+
+/* Medium green heading for the form title */
+h2 {
+  color: #388e3c;
+}
+
+/* Each field group is a div: put the label on its own line and space the groups apart */
+form div {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Give inputs and the dropdown a consistent width and a green border */
+input,
+select {
+  width: 200px;
+  padding: 4px;
+  border: 1px solid #81c784;
+  background: #ffffff;
+}
+
+/* Validation error: red text under the field and a red border on the input */
+.error {
+  display: block;
+  color: #c62828;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+input.invalid {
+  border-color: #c62828;
+}
+
+/* Green outline on the active field */
+input:focus,
+select:focus {
+  outline: 2px solid #43a047;
+}
+
+/* Solid green button with a darker shade on hover */
+button {
+  padding: 6px 20px;
+  background: #43a047;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #2e7d32;
+}
+
+/* Encounter table: single green borders around the table and every cell */
+table {
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+th,
+td {
+  border: 1px solid #81c784;
+  padding: 6px 12px;
+  text-align: left;
+}
+
+/* Light green header row */
+th {
+  background: #c8e6c9;
+}
